@@ -126,6 +126,10 @@ function request(settings, options, args){
       buffer.pipe(request);
     }
 
+    request.on('error', function(e){
+      cli.status(format("Could not connect to %s - %s", requestOptions.host, e.message), "fatal");
+    });
+
   });
 
   if (process.stdin.isTTY) {
