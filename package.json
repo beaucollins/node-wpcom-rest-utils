@@ -7,8 +7,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "bin": {
-      "wpcom-oauth": "lib/wpcom/cli/oauth.js",
-      "wpcom-rest": "lib/wpcom/cli/rest.js"
+      "wpcom-oauth": "bin/oauth.js",
+      "wpcom-rest": "bin/rest.js"
   },
   "author": "",
   "license": "BSD-2-Clause",
