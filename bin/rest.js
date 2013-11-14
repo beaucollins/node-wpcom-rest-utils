@@ -75,17 +75,24 @@ function request(settings, options, args){
       request_options.headers['Content-Length'] = length;
     }
 
-    var request = https.request(request_options);
+    var request = https.request(request_options), start = new Date();
     console.error(format("-> %s %s %s", request_options.method, request_options.path, request_options.host));
     request.on('response', function(response){
       console.error(format("<- %d (%s/%s)", response.statusCode, request_options.host, response.connection.remoteAddress));
+
+      if (options['inspect-headers']) {
+        for (name in response.headers) {
+          console.error(name, ":", response.headers[name]);
+        }
+      }
+
       var body = "";
 
       response.on('end', function(){
         if (process.stdout.isTTY) {
           console.error("\n");
         }
-        console.error(format("-| Complete"));
+        console.error(format("<- Completed in %d seconds ", ((new Date()).getTime() - start.getTime())/1000));
       });
 
       if (process.stdout.isTTY) {
@@ -115,7 +122,8 @@ function request(settings, options, args){
 var cli = require('cli'),
 
     options = require('../lib/wpcom/cli/args')(cli, commands, {
-      host: ['H', "Host sandbox address to send requests to", "string"],
+      'host': ['H', "Host sandbox address to send requests to", "string"],
+      'inspect-headers': ['i', "Print response headers to STDERR", "boolean", false],
       'content-type': ['c', "Content-Type of request body", "string", "application/json"]
     }),
     settings = config(options.config_file);
@@ -123,6 +131,7 @@ var cli = require('cli'),
     process.stdin.pause();    
 
     commander.emit(cli.command, settings, settings.apply(options), cli.args);
+
 try {
 } catch (error) {
   cli.status(error.message, "error");
