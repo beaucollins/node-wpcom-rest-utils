@@ -1,22 +1,23 @@
 #!/usr/bin/env node
-var oauth = require('wpcom-oauth'),
-    open = require('open'),
-    http = require('http'),
-    cli = require('cli'),
-    sys = require('sys'),
-    config = require('../lib/wpcom/utils/config'),
-    events = require('events'),
-    commands = [],
-    commander = new events.EventEmitter,
-    emit = events.EventEmitter.prototype.emit,
-    on = function(name, callback){
-      if (commands.indexOf(name) > -1) throw new Error("Command " + name + " already exists");
-      commands.push(name);
-      commander.on(name, callback);
-    }
+var oauth = require('wpcom-oauth');
+var open = require('open');
+var http = require('http');
+var cli = require('cli');
+var config = require('../lib/wpcom/utils/config');
+var events = require('events');
+var commands = [];
+var commander = new events.EventEmitter();
+var emit = events.EventEmitter.prototype.emit;
+var on = function(name, callback){
+  if (commands.indexOf(name) > -1){
+    throw new Error("Command " + name + " already exists");
+  }
+  commands.push(name);
+  commander.on(name, callback);
+};
 
 
-on('authorize', function(settings, options, args){
+on('authorize', function(settings, options){
 
   var server = http.createServer(function(request, response){
 
@@ -38,16 +39,17 @@ on('authorize', function(settings, options, args){
       settings.set('access_token', token.access_token);
       process.exit();
 
-    })
+    });
 
   });
 
   server.listen(3535);
 
-  var auth_url = oauth.getAuthURL(options);
-  open(auth_url);
+  var authUrl = oauth.getAuthURL(options);
+
+  open(authUrl);
   console.log("Go to:");
-  console.log(auth_url);
+  console.log(authUrl);
 
 });
 
@@ -55,7 +57,7 @@ on('token', function(settings, options, args){
   options.code = oauth.parseCode(args[0]);
   oauth.requestToken(options, function(){
     console.log.apply(console, arguments);
-  })
+  });
 });
 
 var options = require('../lib/wpcom/cli/args')(cli, commands),
@@ -66,7 +68,7 @@ commander.emit = function(){
     console.log.apply(console, arguments);
     emit.apply(this, arguments);
   }
-}
+};
 
 
 process.on('exit', settings.save.bind(settings));

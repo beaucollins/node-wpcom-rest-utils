@@ -1,20 +1,19 @@
 #!/usr/bin/env node
-
-var commands = [],
-    stream = require('stream'),
-    temp = require('temp'),
-    format = require('util').format,
-    events = require("events"),
-    https = require("https"),
-    url = require('url'),
-    fs = require('fs'),
-    config = require("../lib/wpcom/utils/config"),
-    formatResponse = require('../lib/wpcom/cli/response-formatter'),
-    commander = new events.EventEmitter,
-    on = function(command, callback){
-      commands.push(command)
-      commander.on(command, callback);
-    };
+var commands = [];
+var stream = require('stream');
+var temp = require('temp');
+var format = require('util').format;
+var events = require("events");
+var https = require("https");
+var url = require('url');
+var fs = require('fs');
+var config = require("../lib/wpcom/utils/config");
+var formatResponse = require('../lib/wpcom/cli/response-formatter');
+var commander = new events.EventEmitter();
+var on = function(command, callback){
+  commands.push(command);
+  commander.on(command, callback);
+};
 
 var DEFAULT_HOST = 'public-api.wordpress.com';
 
@@ -28,14 +27,14 @@ on("get", function get(){
 on("post", function post(){
   arguments[2].unshift('post');
   request.apply(null, arguments);
-})
+});
 
 on("request", request);
 
 function request(settings, options, args){
 
-  var method = args.shift(),
-      path = args.shift();
+  var method = args.shift();
+  var path = args.shift();
 
   if (!method){
     throw new Error("Missing request method: `request METHOD`");
@@ -60,18 +59,18 @@ function request(settings, options, args){
 
   // Add access token to headers
   if (options.access_token) {
-    headers['Authorization'] = "Bearer " + options.access_token;
+    headers.Authorization = "Bearer " + options.access_token;
   }
 
   // if custom host is present in the URL requested
   var definedHost = requestOptions.host &&
-                    requestOptions.host != "" &&
-                    requestOptions.host != DEFAULT_HOST;
+                    requestOptions.host !== "" &&
+                    requestOptions.host !== DEFAULT_HOST;
 
   var customHost = definedHost ? requestOptions.host : options.host;
 
   if (customHost) {
-    headers['host'] = DEFAULT_HOST;
+    headers.host = DEFAULT_HOST;
     requestOptions.hostname = customHost;
     requestOptions.host = customHost;
   }
@@ -100,7 +99,7 @@ function request(settings, options, args){
       console.error(format("<- %d (%s/%s)", response.statusCode, requestOptions.host, response.connection.remoteAddress));
 
       if (options['inspect-headers']) {
-        for (name in response.headers) {
+        for (var name in response.headers) {
           console.error(name, ":", response.headers[name]);
         }
       }
@@ -135,23 +134,20 @@ function request(settings, options, args){
   if (process.stdin.isTTY) {
     process.stdin.emit('end');
   } else {
-    process.stdin.resume();    
+    process.stdin.resume();
   }
 
 }
 
-var cli = require('cli'),
+var cli = require('cli');
+var options = require('../lib/wpcom/cli/args')(cli, commands, {
+  'host':            ['H', "Host sandbox address to send requests to", "string"],
+  'inspect-headers': ['i', "Print response headers to STDERR", "boolean", false],
+  'content-type':    ['c', "Content-Type of request body", "string", "application/json"]
+});
+var settings = config(options.config_file);
 
-    options = require('../lib/wpcom/cli/args')(cli, commands, {
-      'host':            ['H', "Host sandbox address to send requests to", "string"],
-      'inspect-headers': ['i', "Print response headers to STDERR", "boolean", false],
-      'content-type':    ['c', "Content-Type of request body", "string", "application/json"]
-    }),
-
-    settings = config(options.config_file);
-
-    process.stdin.pause();    
-
+process.stdin.pause();
 
 try {
   commander.emit(cli.command, settings, settings.apply(options), cli.args);
