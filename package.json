@@ -1,0 +1,21 @@
+{
+  "name": "wpcom-rest-utils",
+  "version": "0.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+      "wpcom-oauth": "lib/wpcom/cli/oauth.js",
+      "wpcom-rest": "lib/wpcom/cli/rest.js"
+  },
+  "author": "",
+  "license": "BSD-2-Clause",
+  "dependencies": {
+      "wpcom-oauth" : "beaucollins/node-wpcom-oauth",
+      "open" : "*",
+      "cli" : "*",
+      "temp" : "*"
+  }
+}
