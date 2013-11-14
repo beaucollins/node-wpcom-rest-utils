@@ -16,14 +16,16 @@ var commands = [],
       commander.on(command, callback);
     };
 
+var DEFAULT_HOST = 'public-api.wordpress.com';
+
 temp.track();
 
-on("get", function(){
+on("get", function get(){
   arguments[2].unshift('get');
   request.apply(null, arguments);
 });
 
-on("post", function(){
+on("post", function post(){
   arguments[2].unshift('post');
   request.apply(null, arguments);
 })
@@ -35,51 +37,67 @@ function request(settings, options, args){
   var method = args.shift(),
       path = args.shift();
 
-  if (!method) throw new Error("Missing request method: `request METHOD`");
-
-  method = method.toLowerCase();
-
-  if (!path) throw new Error("Missing request path: `request " + method + " PATH`");
-
-  var request_options = url.parse(path);
-
-  if (!(/^\/?rest\/v1\//).exec(request_options.path)){
-    request_options.path = "/rest/v1/" + request_options.path.replace(/^\//, '');
+  if (!method){
+    throw new Error("Missing request method: `request METHOD`");
   }
 
-  request_options.headers = {};
+  if (!path) {
+    throw new Error("Missing request path: `request METHOD PATH`");
+  }
 
+  method = method.toUpperCase();
+
+  var requestOptions = url.parse(path);
+
+  requestOptions.method = method;
+
+  // Check if a relative path was defined and prefix wit /rest/v1/
+  if (!(/^\/?rest\/v1\//).exec(requestOptions.path)){
+    requestOptions.path = "/rest/v1/" + requestOptions.path.replace(/^\//, '');
+  }
+
+  var headers = {};
+
+  // Add access token to headers
   if (options.access_token) {
-    request_options.headers['Authorization'] = "Bearer " + options.access_token;
+    headers['Authorization'] = "Bearer " + options.access_token;
   }
 
-  request_options.host = "public-api.wordpress.com";
-  request_options.method = method.toUpperCase();
+  // if custom host is present in the URL requested
+  var definedHost = requestOptions.host &&
+                    requestOptions.host != "" &&
+                    requestOptions.host != DEFAULT_HOST;
 
-  if (options.host) {
-    request_options.headers['Host'] = request_options.host;
-    request_options.host = options.host;
+  var customHost = definedHost ? requestOptions.host : options.host;
+
+  if (customHost) {
+    headers['host'] = DEFAULT_HOST;
+    requestOptions.hostname = customHost;
+    requestOptions.host = customHost;
   }
+
+  requestOptions.headers = headers;
 
   var tmp = temp.createWriteStream();
 
   process.stdin.pipe(tmp);
 
   var length = 0;
-  process.stdin.on('data', function(data){
+
+  process.stdin.on('data', function countLength(data){
     length += data.length;
   });
 
-  process.stdin.on('end', function(){
+  process.stdin.on('end', function onEnd(){
 
     if (length > 0) {
-      request_options.headers['Content-Length'] = length;
+      requestOptions.headers['Content-Length'] = length;
     }
 
-    var request = https.request(request_options), start = new Date();
-    console.error(format("-> %s %s %s", request_options.method, request_options.path, request_options.host));
-    request.on('response', function(response){
-      console.error(format("<- %d (%s/%s)", response.statusCode, request_options.host, response.connection.remoteAddress));
+    var request = https.request(requestOptions), start = new Date();
+    console.error(format("-> %s %s %s", requestOptions.method, requestOptions.path, requestOptions.hostname));
+    request.on('response', function onResponse(response){
+      console.error(format("<- %d (%s/%s)", response.statusCode, requestOptions.host, response.connection.remoteAddress));
 
       if (options['inspect-headers']) {
         for (name in response.headers) {
@@ -95,7 +113,7 @@ function request(settings, options, args){
         response.pipe(process.stdout);
       }
 
-      response.on('end', function(){
+      response.on('end', function onResponseEnd(){
         console.error(format("<- Completed in %d seconds ", ((new Date()).getTime() - start.getTime())/1000));
       });
 
@@ -130,9 +148,9 @@ var cli = require('cli'),
 
     process.stdin.pause();    
 
-    commander.emit(cli.command, settings, settings.apply(options), cli.args);
 
 try {
+  commander.emit(cli.command, settings, settings.apply(options), cli.args);
 } catch (error) {
   cli.status(error.message, "error");
 }
