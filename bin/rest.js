@@ -9,6 +9,7 @@ var commands = [],
     url = require('url'),
     fs = require('fs'),
     config = require("../lib/wpcom/utils/config"),
+    formatResponse = require('../lib/wpcom/cli/response-formatter'),
     commander = new events.EventEmitter,
     on = function(command, callback){
       commands.push(command)
@@ -88,18 +89,16 @@ function request(settings, options, args){
 
       var body = "";
 
+      if (process.stdout.isTTY) {
+        formatResponse(response, process.stdout);
+      } else {
+        response.pipe(process.stdout);
+      }
+
       response.on('end', function(){
-        if (process.stdout.isTTY) {
-          console.error("\n");
-        }
         console.error(format("<- Completed in %d seconds ", ((new Date()).getTime() - start.getTime())/1000));
       });
 
-      if (process.stdout.isTTY) {
-        console.error("");
-      }
-      response.pipe(process.stdout);
-      
     });
 
     if (process.stdin.isTTY) {
@@ -122,10 +121,11 @@ function request(settings, options, args){
 var cli = require('cli'),
 
     options = require('../lib/wpcom/cli/args')(cli, commands, {
-      'host': ['H', "Host sandbox address to send requests to", "string"],
+      'host':            ['H', "Host sandbox address to send requests to", "string"],
       'inspect-headers': ['i', "Print response headers to STDERR", "boolean", false],
-      'content-type': ['c', "Content-Type of request body", "string", "application/json"]
+      'content-type':    ['c', "Content-Type of request body", "string", "application/json"]
     }),
+
     settings = config(options.config_file);
 
     process.stdin.pause();    
