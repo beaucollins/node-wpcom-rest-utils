@@ -73,6 +73,9 @@ function request(settings, options, args){
     headers.host = DEFAULT_HOST;
     requestOptions.hostname = customHost;
     requestOptions.host = customHost;
+  } else {
+    requestOptions.host = DEFAULT_HOST;
+    requestOptions.hostname = DEFAULT_HOST;
   }
 
   requestOptions.headers = headers;
